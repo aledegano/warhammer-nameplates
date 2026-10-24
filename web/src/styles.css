@@ -1,0 +1,179 @@
+:root {
+  --bg: #f2f0eb;
+  --panel: #ffffff;
+  --text: #222326;
+  --muted: #5d6066;
+  --border: #d6d2c8;
+  --accent: #8a1c1c;
+  --accent-text: #ffffff;
+  --alert-bg: #fbeaea;
+  --alert-text: #7a1414;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) 1fr;
+  height: 100vh;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.intro,
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+fieldset {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+fieldset > legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+fieldset > .hint,
+fieldset > .note,
+fieldset > .field,
+fieldset > button {
+  grid-column: 1 / -1;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input:not([type="file"]),
+select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.secondary {
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 400;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.note {
+  margin: 0;
+  padding: 8px;
+  border-radius: 4px;
+  background: #fff6df;
+  font-size: 13px;
+}
+
+.preview {
+  position: relative;
+  min-height: 360px;
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.report,
+.refusal {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+
+.report:empty {
+  display: none;
+}
+
+.report {
+  background: rgb(255 255 255 / 85%);
+}
+
+.refusal {
+  top: 16px;
+  bottom: auto;
+  background: var(--alert-bg);
+  color: var(--alert-text);
+}
+
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .settings {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview {
+    min-height: 60vh;
+  }
+}

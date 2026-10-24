@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.stl
+dist-web/
+test-results/
+playwright-report/

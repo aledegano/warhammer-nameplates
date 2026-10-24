@@ -6,9 +6,13 @@ Generate 3D-printable nameplates that sit flush on the sloped rim of a Warhammer
 
 ![Pedro Kantor nameplate, front view](docs/images/pedro-kantor-front.png)
 
-Give it a model's name and its base, and it writes an STL. The nameplate is a strip shaped like a slice of the rim's cone, so its back sits flat against the base and it leans back with the rim's slope. The name is set in raised capitals, ready to drybrush. The plate is as long as the name needs, up to half-way around the base.
+**Try it in your browser: <https://aledegano.github.io/warhammer-nameplates/>**. Type a name, adjust the settings while the 3D preview updates, and download the STL. Nothing is uploaded: the plate is built on your own computer, and so is any font you choose. The page address holds your settings, so you can bookmark a plate or send someone the link.
+
+You can also run it from the command line. Give it a model's name and its base, and it writes an STL. The nameplate is a strip shaped like a slice of the rim's cone, so its back sits flat against the base and it leans back with the rim's slope. The name is set in raised capitals, ready to drybrush. The plate is as long as the name needs, up to half-way around the base.
 
 ## Requirements
+
+For the command line or local development:
 
 - Node.js 22 or later
 - A resin printer is recommended. The default letters are 2 mm tall with 0.4 mm relief, which is finer than most FDM printers resolve cleanly.
@@ -71,12 +75,18 @@ The tool refuses to generate a plate it thinks won't work, and tells you what to
 ## Development
 
 ```sh
-npm test            # Vitest: geometry properties of generated nameplates, plus a CLI smoke test
-npm run typecheck   # tsc --noEmit
+npm run web         # the web app with live reload, at http://localhost:5173/warhammer-nameplates/
+npm test            # Vitest: geometry properties of generated nameplates, plus CLI tests
+npm run test:e2e    # Playwright: browser tests against the production build
+npm run typecheck   # tsc for the core, CLI and tests, and for the web app
 npm run render      # regenerate the README images in docs/images/ from the current geometry
 ```
 
-The geometry lives in `src/nameplate.ts`. It's a pure function that takes a request (name, base, sizes, font bytes) and returns a triangle mesh and a report. The CLI is a thin wrapper around it. The core uses [manifold-3d](https://github.com/elalish/manifold) and [opentype.js](https://github.com/opentypejs/opentype.js), and has no Node-only dependencies, so a future browser app with live preview can reuse it. See [ADR-0001](docs/adr/0001-typescript-manifold-geometry-core.md).
+The first time you run the browser tests, install Chromium with `npx playwright install chromium`. On Linux you may also need its system libraries: `sudo npx playwright install-deps chromium`.
+
+The geometry lives in `src/nameplate.ts`. It's a pure function that takes a request (name, base, sizes, font bytes) and returns a triangle mesh and a report. The CLI and the web app are both thin layers over it, so they always make identical plates. The core uses [manifold-3d](https://github.com/elalish/manifold) and [opentype.js](https://github.com/opentypejs/opentype.js), and has no Node-only dependencies. See [ADR-0001](docs/adr/0001-typescript-manifold-geometry-core.md).
+
+The web app in `web/` uses Vite, React and three.js. It builds the plate in a Web Worker, so the page stays responsive while you type. Every push to `main` runs all the checks and, if they pass, deploys the site to GitHub Pages (see `.github/workflows/deploy.yml`).
 
 Domain terms (Nameplate, Base, Rim, Base Profile, Base Preset) are defined in [GLOSSARY.md](GLOSSARY.md). Work is tracked in [GitHub Issues](https://github.com/aledegano/warhammer-nameplates/issues).
 

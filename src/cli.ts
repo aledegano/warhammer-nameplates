@@ -9,7 +9,7 @@ import {
   type NameplateSizes,
   type PresetId,
 } from "./nameplate.js";
-import { toStl } from "./stl.js";
+import { stlFileName, toStl } from "./stl.js";
 
 const DEFAULT_FONT = new URL("../fonts/cinzel/Cinzel.ttf", import.meta.url);
 
@@ -109,7 +109,7 @@ const result = await generateNameplate({
 });
 if (!result.ok) fail(result.error.message);
 else {
-  const output = typeof values.output === "string" ? values.output : `${name.toLowerCase().replace(/\W+/g, "-")}.stl`;
+  const output = typeof values.output === "string" ? values.output : stlFileName(name);
   writeFileSync(output, toStl(result.mesh));
   const { arcDegrees, length, stripHeight, capHeight, backing, relief } = result.report;
   console.log(

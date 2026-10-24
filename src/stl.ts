@@ -23,3 +23,6 @@ export function toStl(mesh: NameplateMesh): Uint8Array {
   }
   return bytes;
 }
+
+/** File name for a model's nameplate, e.g. "Pedro Kantor" → "pedro-kantor.stl". */
+export const stlFileName = (name: string): string => `${name.toLowerCase().replace(/\W+/g, "-")}.stl`;
