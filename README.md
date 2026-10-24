@@ -73,6 +73,7 @@ The tool refuses to generate a plate it thinks won't work, and tells you what to
 ```sh
 npm test            # Vitest: geometry properties of generated nameplates, plus a CLI smoke test
 npm run typecheck   # tsc --noEmit
+npm run render      # regenerate the README images in docs/images/ from the current geometry
 ```
 
 The geometry lives in `src/nameplate.ts`. It's a pure function that takes a request (name, base, sizes, font bytes) and returns a triangle mesh and a report. The CLI is a thin wrapper around it. The core uses [manifold-3d](https://github.com/elalish/manifold) and [opentype.js](https://github.com/opentypejs/opentype.js), and has no Node-only dependencies, so a future browser app with live preview can reuse it. See [ADR-0001](docs/adr/0001-typescript-manifold-geometry-core.md).

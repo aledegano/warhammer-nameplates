@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "nameplate": "tsx src/cli.ts"
+    "nameplate": "tsx src/cli.ts",
+    "render": "tsx scripts/render-readme-images.ts"
   },
   "repository": {
     "type": "git",
