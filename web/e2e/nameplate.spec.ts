@@ -80,3 +80,19 @@ test("only downloads a plate built from the current settings", async ({ page }) 
   const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
   expect(download.suggestedFilename()).toBe("kantor.stl");
 });
+
+test("only keeps font=custom in the link while an uploaded font is in use", async ({ page }) => {
+  await page.goto("?name=Pedro+Kantor&base=32&font=custom");
+
+  // The opened link was made with a custom font, but the plate shown is in Cinzel.
+  await expect(page.getByRole("note")).toContainText("custom font");
+  await expect(page).not.toHaveURL(/font=custom/);
+
+  await page.getByLabel("Your own font (TTF/OTF)").setInputFiles("fonts/cinzel/Cinzel.ttf");
+  await expect(page).toHaveURL(/font=custom/);
+  await expect(page.getByRole("note")).toBeHidden();
+
+  await page.getByRole("button", { name: "Use Cinzel" }).click();
+  await expect(page).not.toHaveURL(/font=custom/);
+  await expect(page.getByRole("note")).toBeHidden();
+});

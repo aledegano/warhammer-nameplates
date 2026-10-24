@@ -4,7 +4,7 @@ import { BASE_PRESETS, DEFAULT_SIZES, type BaseProfile, type NameplateSizes, typ
 import { stlFileName } from "../../src/stl";
 import { NumberField } from "./NumberField";
 import { Preview } from "./Preview";
-import { settingsFromQuery, settingsToQuery, settingsToRequest, type Settings } from "./settings";
+import { madeWithCustomFont, settingsFromQuery, settingsToQuery, settingsToRequest, type Settings } from "./settings";
 import { useNameplate } from "./useNameplate";
 
 const MEASURED_FIELDS: [keyof BaseProfile, string][] = [
@@ -31,16 +31,18 @@ const loadCinzel = () => fetch(cinzelUrl).then((response) => response.arrayBuffe
 export function App() {
   const [settings, setSettings] = useState<Settings>(() => settingsFromQuery(window.location.search));
   const [cinzel, setCinzel] = useState<ArrayBuffer>();
-  // The user's own font, by file name; it never leaves the browser.
+  // The user's own font, by file name; it never leaves the browser. Without one, the plate is in Cinzel.
   const [uploaded, setUploaded] = useState<{ name: string; bytes: ArrayBuffer }>();
+  // Shown for the opened link until the user picks a font of their own.
+  const [customFontNote, setCustomFontNote] = useState(() => madeWithCustomFont(window.location.search));
 
   useEffect(() => {
     loadCinzel().then(setCinzel);
   }, []);
 
   useEffect(() => {
-    window.history.replaceState(null, "", settingsToQuery(settings));
-  }, [settings]);
+    window.history.replaceState(null, "", settingsToQuery(settings, uploaded !== undefined));
+  }, [settings, uploaded]);
 
   const font = uploaded?.bytes ?? cinzel;
   const request = useMemo(() => (font ? settingsToRequest(settings, font) : undefined), [settings, font]);
@@ -55,11 +57,7 @@ export function App() {
   const chooseFont = async (file: File | undefined) => {
     if (!file) return;
     setUploaded({ name: file.name, bytes: await file.arrayBuffer() });
-    update(() => ({ customFont: true }));
-  };
-  const resetFont = () => {
-    setUploaded(undefined);
-    update(() => ({ customFont: false }));
+    setCustomFontNote(false);
   };
 
   const download = () => {
@@ -129,7 +127,7 @@ export function App() {
         <fieldset>
           <legend>Font</legend>
           <p className="hint">{uploaded ? `Using ${uploaded.name}. It stays in your browser.` : "Using Cinzel."}</p>
-          {settings.customFont && !uploaded && (
+          {customFontNote && (
             <p className="note" role="note">
               This link was made with a custom font, which links can't include, so it's shown in Cinzel.
             </p>
@@ -144,7 +142,7 @@ export function App() {
             />
           </div>
           {uploaded && (
-            <button type="button" className="secondary" onClick={resetFont}>
+            <button type="button" className="secondary" onClick={() => setUploaded(undefined)}>
               Use Cinzel
             </button>
           )}

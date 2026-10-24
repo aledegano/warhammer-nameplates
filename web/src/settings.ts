@@ -9,8 +9,6 @@ export interface Settings {
   measured: Partial<BaseProfile>;
   /** Sizes that differ from the defaults. */
   sizes: Partial<NameplateSizes>;
-  /** Whether the user chose their own font, which a link can't carry. */
-  customFont: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,7 +16,6 @@ export const DEFAULT_SETTINGS: Settings = {
   preset: "32",
   measured: {},
   sizes: {},
-  customFont: false,
 };
 
 // Query keys mirror the CLI's flags.
@@ -57,11 +54,13 @@ export function settingsFromQuery(search: string): Settings {
     preset: base !== null && base in BASE_PRESETS ? (base as PresetId) : DEFAULT_SETTINGS.preset,
     measured: pick(PROFILE_KEYS),
     sizes: pick(SIZE_KEYS),
-    customFont: query.get("font") === "custom",
   };
 }
 
-export function settingsToQuery(settings: Settings): string {
+/** Whether a link was made with the user's own font, which it can't carry. */
+export const madeWithCustomFont = (search: string) => new URLSearchParams(search).get("font") === "custom";
+
+export function settingsToQuery(settings: Settings, customFont: boolean): string {
   const query = new URLSearchParams({ name: settings.name, base: settings.preset });
   for (const [key, field] of Object.entries(PROFILE_KEYS)) {
     const value = settings.measured[field];
@@ -71,7 +70,7 @@ export function settingsToQuery(settings: Settings): string {
     const value = settings.sizes[field];
     if (value !== undefined) query.set(key, String(value));
   }
-  if (settings.customFont) query.set("font", "custom");
+  if (customFont) query.set("font", "custom");
   return `?${query}`;
 }
 
