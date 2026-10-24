@@ -44,7 +44,10 @@ export function App() {
 
   const font = uploaded?.bytes ?? cinzel;
   const request = useMemo(() => (font ? settingsToRequest(settings, font) : undefined), [settings, font]);
-  const { plate, refusal } = useNameplate(request);
+  const { plate, refusal, builtFor } = useNameplate(request);
+  // Only offer a plate built from the settings as they are now, never one still being replaced.
+  const downloadable =
+    plate && !refusal && request && builtFor === request ? { stl: plate.stl, name: request.name } : undefined;
   const base = { ...BASE_PRESETS[settings.preset], ...settings.measured };
   const update = (change: (current: Settings) => Partial<Settings>) =>
     setSettings((current) => ({ ...current, ...change(current) }));
@@ -60,10 +63,10 @@ export function App() {
   };
 
   const download = () => {
-    if (!plate) return;
+    if (!downloadable) return;
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([plate.stl as BlobPart], { type: "model/stl" }));
-    link.download = stlFileName(settings.name);
+    link.href = URL.createObjectURL(new Blob([downloadable.stl as BlobPart], { type: "model/stl" }));
+    link.download = stlFileName(downloadable.name);
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -147,7 +150,7 @@ export function App() {
           )}
         </fieldset>
 
-        <button type="button" onClick={download} disabled={!plate || !!refusal}>
+        <button type="button" onClick={download} disabled={!downloadable}>
           Download STL
         </button>
       </form>

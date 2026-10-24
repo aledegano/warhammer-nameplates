@@ -65,3 +65,18 @@ test("explains why a name is refused and blocks the download", async ({ page }) 
   await expect(page.getByRole("alert")).toContainText(/cap height of [\d.]+ mm/);
   await expect(page.getByRole("button", { name: "Download STL" })).toBeDisabled();
 });
+
+test("only downloads a plate built from the current settings", async ({ page }) => {
+  await page.goto("?name=Pedro+Kantor&base=32");
+  await expect(page.getByRole("status")).toContainText("99.6°");
+  const downloadButton = page.getByRole("button", { name: "Download STL" });
+
+  await page.getByLabel("Name").fill("Kantor");
+
+  // Until the new plate is built, the shown plate is still Pedro Kantor's.
+  await expect(downloadButton).toBeDisabled();
+  await expect(page.getByRole("status")).not.toContainText("99.6°");
+  await expect(downloadButton).toBeEnabled();
+  const [download] = await Promise.all([page.waitForEvent("download"), downloadButton.click()]);
+  expect(download.suggestedFilename()).toBe("kantor.stl");
+});

@@ -10,20 +10,21 @@ export type Refused = Extract<WorkerResponse, { ok: false }>;
 
 /**
  * Builds the nameplate for the latest request in a worker. Keeps the last good plate while a new one is built,
- * and discards results that arrive after a newer request was sent.
+ * and discards results that arrive after a newer request was sent. `builtFor` is the request the latest result
+ * answers, so callers can tell whether the shown plate still matches the current settings.
  */
 export function useNameplate(request: NameplateRequest | undefined) {
   const worker = useRef<Worker>(undefined);
-  const latest = useRef(0);
+  const latest = useRef<{ id: number; request?: NameplateRequest }>({ id: 0 });
   const [plate, setPlate] = useState<Generated>();
   const [refusal, setRefusal] = useState<Refused>();
-  const [building, setBuilding] = useState(false);
+  const [builtFor, setBuiltFor] = useState<NameplateRequest>();
 
   useEffect(() => {
     const w = new Worker(new URL("./nameplate.worker.ts", import.meta.url), { type: "module" });
     w.onmessage = ({ data }: MessageEvent<WorkerResponse>) => {
-      if (data.id !== latest.current) return;
-      setBuilding(false);
+      if (data.id !== latest.current.id) return;
+      setBuiltFor(latest.current.request);
       if (data.ok) {
         setPlate(data);
         setRefusal(undefined);
@@ -37,11 +38,11 @@ export function useNameplate(request: NameplateRequest | undefined) {
 
   useEffect(() => {
     if (!request) return;
-    const id = ++latest.current;
-    setBuilding(true);
+    const id = latest.current.id + 1;
+    latest.current = { id, request };
     const timer = setTimeout(() => worker.current?.postMessage({ id, request } satisfies WorkerRequest), DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [request]);
 
-  return { plate, refusal, building };
+  return { plate, refusal, builtFor };
 }
