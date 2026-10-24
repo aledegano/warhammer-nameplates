@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { generateNameplate } from "../src/nameplate.js";
-import { angularExtent, cinzel, componentCount, isWatertight, rimCoordinates } from "./mesh-properties.js";
+import { DEFAULT_SIZES, generateNameplate } from "../src/nameplate.js";
+import { angularExtent, backFaceDistances, cinzel, componentCount, isWatertight, rimCoordinates } from "./mesh-properties.js";
 
 const kantor = { name: "Pedro Kantor", base: { preset: "32" as const }, font: cinzel() };
 
@@ -17,9 +17,18 @@ describe("generateNameplate", () => {
     const result = await generateNameplate(kantor);
 
     if (!result.ok) throw new Error(result.error.message);
+    expect(result.report).toMatchObject({ stripHeight: 3.2, capHeight: 2.0, backing: 0.8, relief: 0.4 });
     // "PEDRO KANTOR" at 2 mm caps is roughly 25 mm of plate on a ~96 mm rim.
     expect(result.report.arcDegrees).toBeGreaterThan(70);
     expect(result.report.arcDegrees).toBeLessThan(120);
+    expect(angularExtent(result.mesh)).toBeCloseTo(result.report.arcDegrees, 1);
+  });
+
+  it("reports the true extent of a plate whose name is shorter than its rounded ends", async () => {
+    const result = await generateNameplate({ ...kantor, name: "I", sizes: { endPadding: 0 } });
+
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.report.length).toBeGreaterThanOrEqual(DEFAULT_SIZES.stripHeight);
     expect(angularExtent(result.mesh)).toBeCloseTo(result.report.arcDegrees, 1);
   });
 
@@ -53,7 +62,9 @@ describe("generateNameplate", () => {
       if (!result.ok) throw new Error(result.error.message);
       const rim = rimCoordinates(result.mesh, dims);
       expect(Math.min(...rim.map((p) => p.out))).toBeGreaterThan(-1e-3);
-      expect(rim.filter((p) => Math.abs(p.out) < 1e-3).length).toBeGreaterThan(100);
+      const back = backFaceDistances(result.mesh, dims);
+      expect(back.length).toBeGreaterThan(100);
+      expect(Math.max(...back.map(Math.abs))).toBeLessThan(1e-3);
     });
 
     it("is centred on the rim's slope", async () => {
@@ -83,6 +94,16 @@ describe("generateNameplate", () => {
       expect(result.error.kind).toBe("arc-too-large");
       expect(result.error.message).toMatch(/\d+° .*180°/);
       expect(result.error.message).toMatch(/cap height/i);
+    });
+
+    it("a plate whose end padding alone exceeds 180°, suggesting less padding", async () => {
+      // 32 mm preset: 180° of the centreline is π × 15.375 ≈ 48.3 mm, less than 2 × 25 mm of padding.
+      const result = await generateNameplate({ ...kantor, sizes: { endPadding: 25 } });
+
+      if (result.ok) throw new Error("expected an error");
+      expect(result.error.kind).toBe("arc-too-large");
+      expect(result.error.message).toMatch(/end padding/i);
+      expect(result.error.message).not.toMatch(/-\d/);
     });
 
     it.each([

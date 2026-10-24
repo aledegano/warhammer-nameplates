@@ -66,7 +66,7 @@ export interface NameplateError {
 
 export const MAX_ARC_DEGREES = 180;
 
-export interface NameplateReport {
+export interface NameplateReport extends NameplateSizes {
   /** How far around the rim the plate reaches, in degrees. */
   arcDegrees: number;
   /** Plate length along the strip's centreline, in mm. */
@@ -82,6 +82,8 @@ const BEND_EDGE_LENGTH = 0.4;
 // Letters are sunk slightly into the backing so the union has no coplanar faces.
 const RELIEF_OVERLAP = 0.05;
 const CURVE_SEGMENTS = 8;
+// Segments per full circle for the rounded ends; the default is visibly faceted at this size.
+const END_SEGMENTS = 48;
 
 let manifold: Promise<ManifoldToplevel> | undefined;
 const loadManifold = (): Promise<ManifoldToplevel> =>
@@ -113,14 +115,15 @@ export async function generateNameplate(request: NameplateRequest): Promise<Name
   }
 
   const layout = layoutText(font, text, sizes.capHeight);
-  const length = layout.width + 2 * sizes.endPadding;
+  // The rounded ends are semicircles, so a plate is never shorter than it is tall.
+  const length = Math.max(layout.width + 2 * sizes.endPadding, sizes.stripHeight);
   const centreRadius = rim.radiusAt(rim.slant / 2);
   const arcDegrees = ((length / centreRadius) * 180) / Math.PI;
   if (arcDegrees > MAX_ARC_DEGREES) {
     return failure(
       "arc-too-large",
       `"${request.name}" needs ${Math.round(arcDegrees)}° of rim but a nameplate may reach at most ` +
-        `${MAX_ARC_DEGREES}°. Try a cap height of ${fittingCapHeight(sizes, layout.width, centreRadius).toFixed(2)} mm or less.`,
+        `${MAX_ARC_DEGREES}°. ${arcAdvice(sizes, layout.width, centreRadius)}`,
     );
   }
 
@@ -144,7 +147,7 @@ export async function generateNameplate(request: NameplateRequest): Promise<Name
   return {
     ok: true,
     mesh: { positions, triangles: new Uint32Array(mesh.triVerts) },
-    report: { arcDegrees, length },
+    report: { ...sizes, arcDegrees, length },
   };
 }
 
@@ -174,10 +177,21 @@ function checkSizes(sizes: NameplateSizes): string | undefined {
   return undefined;
 }
 
-/** Largest cap height whose text, scaled down proportionally, keeps the plate within the arc limit. */
-function fittingCapHeight(sizes: NameplateSizes, textWidth: number, centreRadius: number): number {
+/**
+ * How to bring an over-long plate within the arc limit: the largest cap height whose text, scaled down
+ * proportionally, fits, or less end padding when the padding alone leaves too little room.
+ */
+function arcAdvice(sizes: NameplateSizes, textWidth: number, centreRadius: number): string {
   const maxLength = (MAX_ARC_DEGREES * Math.PI * centreRadius) / 180;
-  return (sizes.capHeight * (maxLength - 2 * sizes.endPadding)) / textWidth;
+  const roomForText = maxLength - 2 * sizes.endPadding;
+  const capHeight = (sizes.capHeight * roomForText) / textWidth;
+  if (capHeight < 0.5) {
+    const padding = (maxLength - textWidth) / 2;
+    return padding > 0
+      ? `Reduce the end padding below ${padding.toFixed(2)} mm or shorten the name.`
+      : "Reduce the end padding and cap height, or shorten the name.";
+  }
+  return `Try a cap height of ${capHeight.toFixed(2)} mm or less.`;
 }
 
 function readFont(bytes: ArrayBuffer): Font | undefined {
@@ -266,8 +280,8 @@ function flatPlate(wasm: ManifoldToplevel, glyphs: SimplePolygon[], length: numb
   const radius = sizes.stripHeight / 2;
   const endCentre = length / 2 - radius;
   const outline: CrossSection = CrossSection.hull([
-    CrossSection.circle(radius).translate([-endCentre, 0]),
-    CrossSection.circle(radius).translate([endCentre, 0]),
+    CrossSection.circle(radius, END_SEGMENTS).translate([-endCentre, 0]),
+    CrossSection.circle(radius, END_SEGMENTS).translate([endCentre, 0]),
   ]);
   const backing = outline.extrude(sizes.backing);
   const letters = new CrossSection(glyphs, "NonZero")

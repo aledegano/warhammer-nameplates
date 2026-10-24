@@ -40,6 +40,34 @@ export const rimCoordinates = (
   });
 };
 
+/**
+ * Outward distance from the rim's cone of every vertex on the back face: the triangles facing into the base,
+ * i.e. whose normal points against the rim's outward normal.
+ */
+export const backFaceDistances = (
+  mesh: NameplateMesh,
+  base: { bottomDiameter: number; topDiameter: number; height: number },
+): number[] => {
+  const inset = (base.bottomDiameter - base.topDiameter) / 2;
+  const slant = Math.hypot(inset, base.height);
+  const rim = rimCoordinates(mesh, base);
+  const verts = vertices(mesh);
+  const t = mesh.triangles;
+  const distances: number[] = [];
+  for (let i = 0; i < t.length; i += 3) {
+    const [a, b, c] = [verts[t[i]!]!, verts[t[i + 1]!]!, verts[t[i + 2]!]!];
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const n = [u[1]! * v[2]! - u[2]! * v[1]!, u[2]! * v[0]! - u[0]! * v[2]!, u[0]! * v[1]! - u[1]! * v[0]!];
+    const angle = Math.atan2(a[1] + b[1] + c[1], a[0] + b[0] + c[0]);
+    // Rim's outward normal at this angle: horizontal part height/slant, vertical part inset/slant.
+    const outward = [(Math.cos(angle) * base.height) / slant, (Math.sin(angle) * base.height) / slant, inset / slant];
+    const facing = (n[0]! * outward[0]! + n[1]! * outward[1]! + n[2]! * outward[2]!) / Math.hypot(n[0]!, n[1]!, n[2]!);
+    if (facing < -0.99) distances.push(rim[t[i]!]!.out, rim[t[i + 1]!]!.out, rim[t[i + 2]!]!.out);
+  }
+  return distances;
+};
+
 // Every directed edge must appear exactly once, and its reverse exactly once.
 export const isWatertight = (mesh: NameplateMesh): boolean => {
   const directed = new Map<string, number>();

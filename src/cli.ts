@@ -111,6 +111,9 @@ if (!result.ok) fail(result.error.message);
 else {
   const output = typeof values.output === "string" ? values.output : `${name.toLowerCase().replace(/\W+/g, "-")}.stl`;
   writeFileSync(output, toStl(result.mesh));
-  const { arcDegrees, length } = result.report;
-  console.log(`Wrote ${output}: ${length.toFixed(1)} mm long, ${arcDegrees.toFixed(1)}° of rim.`);
+  const { arcDegrees, length, stripHeight, capHeight, backing, relief } = result.report;
+  console.log(
+    `Wrote ${output}: ${length.toFixed(1)} mm long (${arcDegrees.toFixed(1)}° of rim), ${stripHeight} mm strip, ` +
+      `${capHeight} mm capitals, ${backing} mm backing + ${relief} mm relief.`,
+  );
 }
