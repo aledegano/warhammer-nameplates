@@ -112,3 +112,20 @@ test("says so when the worker fails to start", async ({ page }) => {
   await expect(page.getByRole("alert")).toContainText("Couldn't build the nameplate");
   await expect(page.getByRole("button", { name: "Download STL" })).toBeDisabled();
 });
+
+test("drops nonsensical numbers from a link in favour of their defaults", async ({ page }) => {
+  await page.goto("?name=Pedro+Kantor&base=32&strip-height=-1");
+
+  await expect(page.getByRole("status")).toContainText("99.6°");
+  await expect(page.getByLabel("Strip height (mm)")).toHaveValue("");
+  await expect(page).not.toHaveURL(/strip-height/);
+});
+
+test("drops a measurement that doesn't fit the preset but keeps the rest of the link", async ({ page }) => {
+  // A 29.5 mm bottom is fine on its own, but not under the 32 mm preset's 29.5 mm top.
+  await page.goto("?name=Pedro+Kantor&base=32&bottom-diameter=29.5&cap-height=2");
+
+  await expect(page.getByRole("status")).toContainText("99.6°");
+  await expect(page.getByLabel("Bottom diameter (mm)")).toHaveValue("");
+  await expect(page.getByLabel("Cap height (mm)")).toHaveValue("2");
+});

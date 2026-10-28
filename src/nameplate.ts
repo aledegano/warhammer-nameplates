@@ -94,11 +94,10 @@ const loadManifold = (): Promise<ManifoldToplevel> =>
 
 export async function generateNameplate(request: NameplateRequest): Promise<NameplateResult> {
   const wasm = await loadManifold();
+  const problem = checkDimensions(request.base, request.sizes);
+  if (problem) return { ok: false, error: problem };
   const sizes = { ...DEFAULT_SIZES, ...request.sizes };
-  const profile = resolveProfile(request.base);
-  if (typeof profile === "string") return failure("invalid-base-profile", `Invalid base profile: ${profile}.`);
-  const sizeProblem = checkSizes(sizes);
-  if (sizeProblem) return failure("invalid-sizes", `Invalid sizes: ${sizeProblem}.`);
+  const profile = resolveProfile(request.base) as BaseProfile;
   const rim = rimGeometry(profile);
   if (sizes.stripHeight > rim.slant) {
     return failure(
@@ -155,6 +154,23 @@ const failure = (kind: NameplateError["kind"], message: string): NameplateResult
   ok: false,
   error: { kind, message },
 });
+
+/**
+ * Why the core would refuse these dimensions outright, as an invalid base profile or invalid sizes, without
+ * building anything. Undefined when they're usable; the plate may still be refused for other reasons.
+ */
+export function checkDimensions(
+  base: NameplateRequest["base"],
+  sizes: Partial<NameplateSizes> = {},
+): NameplateError | undefined {
+  const profile = resolveProfile(base);
+  if (typeof profile === "string") {
+    return { kind: "invalid-base-profile", message: `Invalid base profile: ${profile}.` };
+  }
+  const sizeProblem = checkSizes({ ...DEFAULT_SIZES, ...sizes });
+  if (sizeProblem) return { kind: "invalid-sizes", message: `Invalid sizes: ${sizeProblem}.` };
+  return undefined;
+}
 
 /** The preset's profile with any measured dimensions applied, or why it isn't a usable base. */
 function resolveProfile({ preset, ...overrides }: NameplateRequest["base"]): BaseProfile | string {

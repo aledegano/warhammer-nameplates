@@ -1,5 +1,5 @@
 import type { BaseProfile, NameplateRequest, NameplateSizes, PresetId } from "../../src/nameplate";
-import { BASE_PRESETS } from "../../src/nameplate";
+import { BASE_PRESETS, checkDimensions } from "../../src/nameplate";
 
 /** Everything the form controls, except the font bytes themselves. */
 export interface Settings {
@@ -32,7 +32,10 @@ export const SIZE_KEYS: Record<string, keyof NameplateSizes> = {
   "end-padding": "endPadding",
 };
 
-/** Reads settings from a query string; anything missing or unparseable falls back to its default. */
+/**
+ * Reads settings from a query string; anything missing, unparseable or that the core would refuse as a size or
+ * base profile falls back to its default. Numbers are taken in key order, so of two that clash the later one goes.
+ */
 export function settingsFromQuery(search: string): Settings {
   const query = new URLSearchParams(search);
   const number = (key: string) => {
@@ -40,21 +43,25 @@ export function settingsFromQuery(search: string): Settings {
     const value = raw === null || raw.trim() === "" ? NaN : Number(raw);
     return Number.isFinite(value) ? value : undefined;
   };
-  const pick = <K extends string>(keys: Record<string, K>) => {
-    const out: Partial<Record<K, number>> = {};
-    for (const [key, field] of Object.entries(keys)) {
-      const value = number(key);
-      if (value !== undefined) out[field] = value;
-    }
-    return out;
-  };
   const base = query.get("base");
-  return {
+  const settings: Settings = {
     name: query.get("name") ?? DEFAULT_SETTINGS.name,
     preset: base !== null && base in BASE_PRESETS ? (base as PresetId) : DEFAULT_SETTINGS.preset,
-    measured: pick(PROFILE_KEYS),
-    sizes: pick(SIZE_KEYS),
+    measured: {},
+    sizes: {},
   };
+  const sensible = ({ preset, measured, sizes }: Settings) => !checkDimensions({ preset, ...measured }, sizes);
+  for (const [key, field] of Object.entries(PROFILE_KEYS)) {
+    const value = number(key);
+    const measured = { ...settings.measured, [field]: value };
+    if (value !== undefined && sensible({ ...settings, measured })) settings.measured = measured;
+  }
+  for (const [key, field] of Object.entries(SIZE_KEYS)) {
+    const value = number(key);
+    const sizes = { ...settings.sizes, [field]: value };
+    if (value !== undefined && sensible({ ...settings, sizes })) settings.sizes = sizes;
+  }
+  return settings;
 }
 
 /** Whether a link was made with the user's own font, which it can't carry. */
