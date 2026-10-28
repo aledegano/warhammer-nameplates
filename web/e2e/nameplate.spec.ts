@@ -129,3 +129,20 @@ test("drops a measurement that doesn't fit the preset but keeps the rest of the 
   await expect(page.getByLabel("Bottom diameter (mm)")).toHaveValue("");
   await expect(page.getByLabel("Cap height (mm)")).toHaveValue("2");
 });
+
+test("shows a field's default while it has a value, and gets back to it", async ({ page }) => {
+  await page.goto("?name=Pedro+Kantor&base=32");
+  await expect(page.getByRole("status")).toContainText("99.6°");
+  const reset = page.getByRole("button", { name: "use default 2" });
+  await expect(reset).toBeHidden();
+
+  await page.getByLabel("Cap height").fill("1.6");
+  await expect(page.getByRole("status")).not.toContainText("99.6°");
+  await expect(reset).toHaveAccessibleDescription("Cap height (mm)");
+  await reset.click();
+
+  await expect(page.getByLabel("Cap height")).toHaveValue("");
+  await expect(page).not.toHaveURL(/cap-height/);
+  await expect(page.getByRole("status")).toContainText("99.6°");
+  await expect(reset).toBeHidden();
+});

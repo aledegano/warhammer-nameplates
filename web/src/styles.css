@@ -85,6 +85,21 @@ button {
   font: inherit;
 }
 
+.field-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+button.use-default {
+  padding: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: underline;
+}
+
 input:not([type="file"]),
 select {
   width: 100%;

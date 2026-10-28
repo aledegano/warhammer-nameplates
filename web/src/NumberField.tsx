@@ -4,7 +4,7 @@ interface Props {
   id: string;
   label: string;
   value: number | undefined;
-  /** Shown when the field is empty, which means "use this". */
+  /** Shown as the placeholder when the field is empty, which means "use this", and beside it otherwise. */
   fallback: number;
   onChange: (value: number | undefined) => void;
 }
@@ -14,7 +14,24 @@ export function NumberField({ id, label, value, fallback, onChange }: Props) {
   const [text, setText] = useState(value === undefined ? "" : String(value));
   return (
     <>
-      <label htmlFor={id}>{label} (mm)</label>
+      <div className="field-label">
+        <label id={`${id}-label`} htmlFor={id}>
+          {label} (mm)
+        </label>
+        {text !== "" && (
+          <button
+            type="button"
+            className="use-default"
+            aria-describedby={`${id}-label`}
+            onClick={() => {
+              setText("");
+              onChange(undefined);
+            }}
+          >
+            use default {fallback}
+          </button>
+        )}
+      </div>
       <input
         id={id}
         type="number"
