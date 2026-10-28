@@ -136,6 +136,14 @@ button:disabled {
   inset: 0;
 }
 
+.reset-view {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  background: var(--panel);
+}
+
 .report,
 .refusal {
   position: absolute;

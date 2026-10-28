@@ -105,8 +105,21 @@ export function Preview({ mesh, base }: Props) {
     current.base.geometry = geometry;
   }, [base.bottomDiameter, base.topDiameter, base.height]);
 
-  const diameter = base.bottomDiameter;
-  useEffect(() => scene.current?.frame(diameter), [diameter]);
+  // Frame once, on the first drawable base, so later settings changes keep the reader's orbit and zoom.
+  const diameter = useRef(0);
+  if (base.bottomDiameter > 0) diameter.current = base.bottomDiameter;
+  const framed = useRef(false);
+  useEffect(() => {
+    if (framed.current || !scene.current || !(diameter.current > 0)) return;
+    scene.current.frame(diameter.current);
+    framed.current = true;
+  });
 
-  return <div className="viewport" ref={container} />;
+  return (
+    <div className="viewport" ref={container}>
+      <button type="button" className="secondary reset-view" onClick={() => scene.current?.frame(diameter.current)}>
+        Reset view
+      </button>
+    </div>
+  );
 }
