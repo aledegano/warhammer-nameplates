@@ -46,10 +46,10 @@ export function App() {
 
   const font = uploaded?.bytes ?? cinzel;
   const request = useMemo(() => (font ? settingsToRequest(settings, font) : undefined), [settings, font]);
-  const { plate, refusal, builtFor } = useNameplate(request);
+  const { plate, refusal, failure, builtFor } = useNameplate(request);
   // Only offer a plate built from the settings as they are now, never one still being replaced.
   const downloadable =
-    plate && !refusal && request && builtFor === request ? { stl: plate.stl, name: request.name } : undefined;
+    plate && !refusal && !failure && request && builtFor === request ? { stl: plate.stl, name: request.name } : undefined;
   const base = { ...BASE_PRESETS[settings.preset], ...settings.measured };
   const update = (change: (current: Settings) => Partial<Settings>) =>
     setSettings((current) => ({ ...current, ...change(current) }));
@@ -154,8 +154,12 @@ export function App() {
       </form>
 
       <section className="preview" aria-label="Preview">
-        <Preview mesh={refusal ? undefined : plate?.mesh} base={base} />
-        {refusal ? (
+        <Preview mesh={refusal || failure ? undefined : plate?.mesh} base={base} />
+        {failure ? (
+          <p role="alert" className="refusal">
+            Couldn't build the nameplate: {failure}
+          </p>
+        ) : refusal ? (
           <p role="alert" className="refusal">
             {refusal.error.message}
           </p>

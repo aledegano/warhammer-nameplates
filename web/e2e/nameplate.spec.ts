@@ -96,3 +96,19 @@ test("only keeps font=custom in the link while an uploaded font is in use", asyn
   await expect(page).not.toHaveURL(/font=custom/);
   await expect(page.getByRole("note")).toBeHidden();
 });
+
+test("says so when the geometry engine fails to load", async ({ page }) => {
+  await page.route("**/*.wasm", (route) => route.abort());
+  await page.goto("?name=Pedro+Kantor&base=32");
+
+  await expect(page.getByRole("alert")).toContainText("Couldn't build the nameplate");
+  await expect(page.getByRole("button", { name: "Download STL" })).toBeDisabled();
+});
+
+test("says so when the worker fails to start", async ({ page }) => {
+  await page.route("**/nameplate.worker-*.js", (route) => route.abort());
+  await page.goto("?name=Pedro+Kantor&base=32");
+
+  await expect(page.getByRole("alert")).toContainText("Couldn't build the nameplate");
+  await expect(page.getByRole("button", { name: "Download STL" })).toBeDisabled();
+});
