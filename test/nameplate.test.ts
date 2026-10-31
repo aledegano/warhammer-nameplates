@@ -32,6 +32,24 @@ describe("generateNameplate", () => {
     expect(angularExtent(result.mesh)).toBeCloseTo(result.report.arcDegrees, 1);
   });
 
+  it("marks the raised letters' faces apart from the strip's, split at the backing's front face", async () => {
+    const result = await generateNameplate(kantor);
+
+    if (!result.ok) throw new Error(result.error.message);
+    const { triangles, letters } = result.mesh;
+    expect(letters.length).toBe(triangles.length / 3);
+    const out = rimCoordinates(result.mesh, { bottomDiameter: 32, topDiameter: 29.5, height: 4 }).map((p) => p.out);
+    const letterOut: number[] = [];
+    const stripOut: number[] = [];
+    letters.forEach((isLetter, t) => {
+      for (let k = 0; k < 3; k++) (isLetter ? letterOut : stripOut).push(out[triangles[t * 3 + k]!]!);
+    });
+    expect(letterOut.length).toBeGreaterThan(0);
+    expect(Math.min(...letterOut)).toBeGreaterThan(DEFAULT_SIZES.backing - 1e-3);
+    expect(Math.max(...letterOut)).toBeCloseTo(DEFAULT_SIZES.backing + DEFAULT_SIZES.relief, 3);
+    expect(Math.max(...stripOut)).toBeLessThan(DEFAULT_SIZES.backing + 1e-3);
+  });
+
   it("lengthens the arc by the extra end padding over the strip's centreline radius", async () => {
     const short = await generateNameplate({ ...kantor, sizes: { endPadding: 2 } });
     const long = await generateNameplate({ ...kantor, sizes: { endPadding: 3 } });

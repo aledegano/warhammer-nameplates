@@ -35,6 +35,7 @@ async function build(data: WorkerRequest) {
   self.postMessage({ id: data.id, ...result, stl } satisfies WorkerResponse, [
     result.mesh.positions.buffer,
     result.mesh.triangles.buffer,
+    result.mesh.letters.buffer,
     stl.buffer,
   ]);
 }

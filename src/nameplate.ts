@@ -51,6 +51,8 @@ export interface NameplateRequest {
 export interface NameplateMesh {
   positions: Float32Array;
   triangles: Uint32Array;
+  /** One entry per triangle: 1 where it belongs to the raised letters (tops and sides), 0 on the strip. */
+  letters: Uint8Array;
 }
 
 export interface NameplateError {
@@ -126,7 +128,7 @@ export async function generateNameplate(request: NameplateRequest): Promise<Name
     );
   }
 
-  const flat = flatPlate(wasm, layout.contours, length, sizes);
+  const { plate: flat, lettersID } = flatPlate(wasm, layout.contours, length, sizes);
   const bent = flat.refineToLength(BEND_EDGE_LENGTH).warp((vert) => {
     const [u, v, w] = vert;
     const s = rim.slant / 2 + v;
@@ -143,9 +145,15 @@ export async function generateNameplate(request: NameplateRequest): Promise<Name
   for (let i = 0; i < mesh.numVert; i++) {
     positions.set(mesh.vertProperties.subarray(i * mesh.numProp, i * mesh.numProp + 3), i * 3);
   }
+  // Triangles come in runs, one per original solid they were cut from; the letters' runs carry their ID.
+  const letters = new Uint8Array(mesh.numTri);
+  const runIndex = mesh.runIndex!;
+  mesh.runOriginalID!.forEach((id, run) => {
+    if (id === lettersID) letters.fill(1, runIndex[run]! / 3, runIndex[run + 1]! / 3);
+  });
   return {
     ok: true,
-    mesh: { positions, triangles: new Uint32Array(mesh.triVerts) },
+    mesh: { positions, triangles: new Uint32Array(mesh.triVerts), letters },
     report: { ...sizes, arcDegrees, length },
   };
 }
@@ -290,7 +298,10 @@ function flattenPath(
   return contours;
 }
 
-/** The unbent plate: u along the rim, v up the slope, w outward from the rim (back face at w = 0). */
+/**
+ * The unbent plate: u along the rim, v up the slope, w outward from the rim (back face at w = 0),
+ * with the original ID that marks faces of the letters.
+ */
 function flatPlate(wasm: ManifoldToplevel, glyphs: SimplePolygon[], length: number, sizes: NameplateSizes) {
   const { CrossSection } = wasm;
   const radius = sizes.stripHeight / 2;
@@ -302,6 +313,7 @@ function flatPlate(wasm: ManifoldToplevel, glyphs: SimplePolygon[], length: numb
   const backing = outline.extrude(sizes.backing);
   const letters = new CrossSection(glyphs, "NonZero")
     .extrude(sizes.relief + RELIEF_OVERLAP)
-    .translate([0, 0, sizes.backing - RELIEF_OVERLAP]);
-  return backing.add(letters);
+    .translate([0, 0, sizes.backing - RELIEF_OVERLAP])
+    .asOriginal();
+  return { plate: backing.add(letters), lettersID: letters.originalID() };
 }
