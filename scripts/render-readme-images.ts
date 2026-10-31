@@ -7,7 +7,9 @@ import { BASE_PRESETS, generateNameplate, type BaseProfile, type NameplateMesh }
 type Vec3 = [number, number, number];
 type Triangle = { vertices: [Vec3, Vec3, Vec3]; colour: Vec3 };
 
-const PLATE_COLOUR: Vec3 = [222, 205, 170];
+// Painted look: dark stone-grey strip, gold raised letters.
+const PLATE_COLOUR: Vec3 = [78, 76, 72];
+const LETTER_COLOUR: Vec3 = [222, 205, 170];
 const BASE_COLOUR: Vec3 = [70, 74, 80];
 const LIGHT: Vec3 = [0.35, 0.55, 0.76];
 const SUPERSAMPLING = 3;
@@ -22,7 +24,7 @@ const result = await generateNameplate({
 });
 if (!result.ok) throw new Error(result.error.message);
 
-const plate = meshTriangles(result.mesh, PLATE_COLOUR);
+const plate = meshTriangles(result.mesh);
 const images = new URL("../docs/images/", import.meta.url);
 writeFileSync(
   new URL("pedro-kantor-on-base.png", images),
@@ -31,11 +33,12 @@ writeFileSync(
 writeFileSync(new URL("pedro-kantor-front.png", images), render(plate, { yaw: 0, pitch: 0, width: 1000, height: 170 }));
 console.log("Wrote docs/images/pedro-kantor-on-base.png and docs/images/pedro-kantor-front.png");
 
-function meshTriangles(mesh: NameplateMesh, colour: Vec3): Triangle[] {
+function meshTriangles(mesh: NameplateMesh): Triangle[] {
   const vertex = (i: number): Vec3 => [mesh.positions[i * 3]!, mesh.positions[i * 3 + 1]!, mesh.positions[i * 3 + 2]!];
   const triangles: Triangle[] = [];
   for (let t = 0; t < mesh.triangles.length; t += 3) {
     const [a, b, c] = [mesh.triangles[t]!, mesh.triangles[t + 1]!, mesh.triangles[t + 2]!];
+    const colour = mesh.letters[t / 3] ? LETTER_COLOUR : PLATE_COLOUR;
     triangles.push({ vertices: [vertex(a), vertex(b), vertex(c)], colour });
   }
   return triangles;

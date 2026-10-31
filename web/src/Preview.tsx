@@ -3,7 +3,9 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { BaseProfile, NameplateMesh } from "../../src/nameplate";
 
-const PLATE_COLOUR = 0xdecdaa;
+// Painted look: a dark stone-grey strip with gold raised letters.
+const PLATE_COLOUR = 0x4e4c48;
+const LETTER_COLOUR = 0xdecdaa;
 const BASE_COLOUR = 0x464a50;
 const BASE_SEGMENTS = 160;
 
@@ -35,10 +37,11 @@ export function Preview({ mesh, base }: Props) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
-    const plate = new THREE.Mesh(
-      new THREE.BufferGeometry(),
-      new THREE.MeshStandardMaterial({ color: PLATE_COLOUR, flatShading: true, roughness: 0.6 }),
-    );
+    // Material 0 paints the strip, material 1 the letters; the geometry's groups say which triangles are which.
+    const plate = new THREE.Mesh(new THREE.BufferGeometry(), [
+      new THREE.MeshStandardMaterial({ color: PLATE_COLOUR, flatShading: true, roughness: 0.85 }),
+      new THREE.MeshStandardMaterial({ color: LETTER_COLOUR, flatShading: true, roughness: 0.45, metalness: 0.3 }),
+    ]);
     const baseMesh = new THREE.Mesh(
       new THREE.BufferGeometry(),
       new THREE.MeshStandardMaterial({ color: BASE_COLOUR, roughness: 0.8 }),
@@ -75,6 +78,7 @@ export function Preview({ mesh, base }: Props) {
       controls.dispose();
       renderer.dispose();
       plate.geometry.dispose();
+      (plate.material as THREE.Material[]).forEach((material) => material.dispose());
       baseMesh.geometry.dispose();
       element.removeChild(renderer.domElement);
       scene.current = undefined;
@@ -88,7 +92,17 @@ export function Preview({ mesh, base }: Props) {
     if (!mesh) return;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
-    geometry.setIndex(new THREE.BufferAttribute(mesh.triangles, 1));
+    // Strip triangles first, then the letters', so each part is one draw group.
+    const stripCount = mesh.letters.length - mesh.letters.reduce((sum, isLetter) => sum + isLetter, 0);
+    const index = new Uint32Array(mesh.triangles.length);
+    let [nextStrip, nextLetter] = [0, stripCount];
+    mesh.letters.forEach((isLetter, t) => {
+      const slot = isLetter ? nextLetter++ : nextStrip++;
+      index.set(mesh.triangles.subarray(t * 3, t * 3 + 3), slot * 3);
+    });
+    geometry.setIndex(new THREE.BufferAttribute(index, 1));
+    geometry.addGroup(0, stripCount * 3, 0);
+    geometry.addGroup(stripCount * 3, Infinity, 1);
     plate.geometry.dispose();
     plate.geometry = geometry;
   }, [mesh]);
