@@ -7,8 +7,8 @@ import { BASE_PRESETS, generateNameplate, type BaseProfile, type NameplateMesh }
 type Vec3 = [number, number, number];
 type Triangle = { vertices: [Vec3, Vec3, Vec3]; colour: Vec3 };
 
-// Painted look: dark stone-grey strip, gold raised letters.
-const PLATE_COLOUR: Vec3 = [78, 76, 72];
+// Painted look: stone-grey strip, gold raised letters.
+const PLATE_COLOUR: Vec3 = [130, 139, 143];
 const LETTER_COLOUR: Vec3 = [222, 205, 170];
 const BASE_COLOUR: Vec3 = [70, 74, 80];
 const LIGHT: Vec3 = [0.35, 0.55, 0.76];

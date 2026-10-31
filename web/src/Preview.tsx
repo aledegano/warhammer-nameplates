@@ -3,8 +3,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { BaseProfile, NameplateMesh } from "../../src/nameplate";
 
-// Painted look: a dark stone-grey strip with gold raised letters.
-const PLATE_COLOUR = 0x4e4c48;
+// Painted look: a stone-grey strip with gold raised letters.
+const PLATE_COLOUR = 0x828b8f;
 const LETTER_COLOUR = 0xdecdaa;
 const BASE_COLOUR = 0x464a50;
 const BASE_SEGMENTS = 160;
